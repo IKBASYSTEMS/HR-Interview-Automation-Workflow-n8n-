@@ -1,0 +1,1652 @@
+{
+  "name": "hr-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "inputDataFieldName": "=attachment_0",
+        "name": "={{ $binary.attachment_0.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Y-9O0lL1ZFnBJvQ4XYuQJC4UopdwPNTh",
+          "mode": "list",
+          "cachedResultName": "CandidateResume",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Y-9O0lL1ZFnBJvQ4XYuQJC4UopdwPNTh"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -4816,
+        -1120
+      ],
+      "id": "cf455cde-408a-4d9b-92d4-c0d9aa6878bc",
+      "name": "Upload Resume to Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "mEVNbP4Vj2Kl3RSL",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY",
+          "mode": "list",
+          "cachedResultName": "CandidateList",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY/edit?usp=drivesdk"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -4544,
+        -1120
+      ],
+      "id": "ab9bd0c6-588f-470a-b2a6-d0b662e367bc",
+      "name": "Generate Resume Share Link",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "mEVNbP4Vj2Kl3RSL",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=attachment_0",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -4816,
+        -928
+      ],
+      "id": "539ef982-1388-4ecf-b4ae-49a185d36e5f",
+      "name": "Extract Resume Text"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "463b2da2-0564-4596-8ad0-b12416cd9d2c",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": "={{ $('Global Config').item.json.min_score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -832,
+        -1120
+      ],
+      "id": "4bec4864-ccbe-4c95-ba26-4c14d8d72556",
+      "name": "Evaluate Candidate Match"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "59e3abf6-26b6-4f80-9836-f84620629c4b",
+              "leftValue": "={{ $binary?.attachment_0?.mimeType === \"application/pdf\" }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -5120,
+        -912
+      ],
+      "id": "c78a6535-d2f7-4798-908d-ac5b04eab011",
+      "name": "Validate Resume Attachment"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM interview_slots\nWHERE slot_date >= CURDATE() + INTERVAL {{ $node[\"Global Config\"].json.slot_offset_days }} DAY\nAND is_booked = 0\nAND DAYOFWEEK(slot_date) NOT IN (1,7)\nAND slot_date NOT IN (SELECT holiday_date FROM holidays)\nORDER BY slot_date, slot_time\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -368,
+        -1056
+      ],
+      "id": "0f15c5a9-9191-46f8-8073-e2ae5a15f910",
+      "name": "Get available slot",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "00f5b56e-f90d-40cc-9bb8-826d2c96a967",
+              "leftValue": "={{ $json.id !== undefined }}",
+              "rightValue": {},
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        -1056
+      ],
+      "id": "0af7ca9f-6ad2-40dd-94a5-ae0029364a66",
+      "name": "check Slot Avialable or not",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT MIN(date_candidate) as next_working_day\nFROM (\n    SELECT DATE_ADD(CURDATE(), INTERVAL seq DAY) as date_candidate\n    FROM (\n        SELECT 1 seq UNION SELECT 2 UNION SELECT 3 UNION \n        SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION \n        SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10\n    ) numbers\n) d\nWHERE DAYOFWEEK(date_candidate) NOT IN (1,7)\nAND date_candidate NOT IN (SELECT holiday_date FROM holidays)\nAND date_candidate > (\n    SELECT COALESCE(MAX(slot_date), CURDATE())\n    FROM interview_slots\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        256,
+        -944
+      ],
+      "id": "4cda8205-bdb2-4874-9fe8-19841a2e6784",
+      "name": "Generate Next Working Day",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT IGNORE INTO interview_slots (slot_date, slot_time)\nSELECT \n    '{{ $json.next_working_day }}',\n    t.slot_time\nFROM \n(\n    SELECT '10:00:00' as slot_time UNION\n    SELECT '11:00:00' UNION\n    SELECT '12:00:00' UNION\n    SELECT '14:00:00' UNION\n    SELECT '15:00:00' UNION\n    SELECT '16:00:00'\n) t;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        576,
+        -944
+      ],
+      "id": "7a2ba7c5-f797-4528-96b8-dbce02eb19f4",
+      "name": "Insert Slots For That Day",
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM interview_slots\nWHERE slot_date >= CURDATE() + INTERVAL {{ $node[\"Global Config\"].json.slot_offset_days }} DAY\nAND is_booked = 0\nAND DAYOFWEEK(slot_date) NOT IN (1,7)\nAND slot_date NOT IN (SELECT holiday_date FROM holidays)\nORDER BY slot_date, slot_time\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        928,
+        -944
+      ],
+      "id": "92c43a61-f443-4173-beb9-e0fd4c477fb1",
+      "name": "Get available slot1",
+      "alwaysOutputData": false,
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, slot_date, slot_time, candidate_email\nFROM interview_slots\nWHERE id = {{ $('Slot ID Resolver').item.json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1728,
+        -1104
+      ],
+      "id": "a408b148-8597-48ae-a80a-8822bcef7e4a",
+      "name": "Get updated slot data",
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM interview_slots\nWHERE slot_date > CURDATE()\nAND is_booked = 1\nAND candidate_email = '{{ $('Evaluate Candidate Match').item.json.candidate_email }}'  ORDER BY id DESC LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        -1200
+      ],
+      "id": "e0eb9855-e58f-4250-adb4-73bb49f08515",
+      "name": "Get Booked Slot ",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "00e54bdb-2341-4487-86ef-375d70c364da",
+              "leftValue": "={{ $json.id !== undefined }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        -1200
+      ],
+      "id": "46cbd03d-6f79-4920-aa36-2f5e0d4972b8",
+      "name": "Check Slot Already Booked or Not"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM interview_slots\nWHERE slot_date >= CURDATE()\nAND is_booked = 1\nAND candidate_email = '{{ $('Evaluate Candidate Match').item.json.candidate_email }}'  ORDER BY id DESC LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1232,
+        -1328
+      ],
+      "id": "a38b8ac9-5fed-4d45-804e-31357d5b4ffe",
+      "name": "Get Booked Slot 1",
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"slot_offset_days\": 1,\n  \"email_signature_name\": \"HR Team\",\n  \"email_signature_company\": \"ABC Technologies Pvt Ltd\",\n  \"from_address\": {{ $json.from?.value?.[0]?.address || '' }},\n\"min_score\":50\n\n}\n ",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5424,
+        -912
+      ],
+      "id": "846415b8-17bf-4ad2-9b4c-b2af26813e39",
+      "name": "Global Config",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "includeSpamTrash": false
+        },
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "attachment_",
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -5696,
+        -912
+      ],
+      "id": "545023d0-9d7c-4442-945d-771c05e7b882",
+      "name": "Get Email",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6E6HIbGCjYf1Smia",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const role = $input.first().json.selected_role_name;\nconst minExp = $input.first().json.selected_min_experience;\nconst skillScore = $input.first().json.skillScore;\n\nconst resumeText = $('Clean & Serialize Resume Text').first().json.cleanText;\n\nconst prompt = `\nYou are an AI Resume Evaluator.\n\nReturn ONLY valid JSON.\n\n------------------------\n\nJOB DETAILS:\nRole: ${role}\nMinimum Experience: ${minExp}\nSkill Score: ${skillScore}\n\n------------------------\n\nRESUME:\n${resumeText.substring(0, 2500)}\n\n------------------------\n\nTASKS:\n- Extract candidate_name\n- Extract candidate_email\n- Extract candidate_profile\n- Calculate experience_years\n- Calculate score (0-100)\n\n------------------------\n\nSCORING:\n- Skill Score → 50%\n- Experience → 30%\n- Relevance → 20%\n\n------------------------\n\nOUTPUT:\n{\n  \"candidate_name\": \"\",\n  \"candidate_email\": \"\",\n  \"candidate_profile\": \"\",\n  \"experience_years\": 0,\n  \"score\": 0\n}\n`;\n\nreturn [\n  {\n    json: {\n      prompt: prompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1936,
+        -1040
+      ],
+      "id": "85aa2db7-99c6-4984-ab09-5f10dffa9043",
+      "name": "Build AI Evaluation Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      cleanText: JSON.stringify($input.first().json.text)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4544,
+        -928
+      ],
+      "id": "fd0e7ead-ff1b-4a38-ae9d-c54a4bd8a760",
+      "name": "Clean & Serialize Resume Text"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.response;\n// JSON extract\nconst jsonMatch = raw.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) {\n  throw new Error(\"No valid JSON found in response\");\n}\nconst parsed = JSON.parse(jsonMatch[0]);\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        -1040
+      ],
+      "id": "cf0e321d-39e4-48e7-a7eb-860f656581f6",
+      "name": "Extract & Parse AI Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "RAW",
+        "body": "={{ JSON.stringify({ \n  \"model\": \"llama3:8b\", \n  \"prompt\": $json.prompt, \n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.7,\n    \"num_predict\": 2048\n  }\n}) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1712,
+        -1040
+      ],
+      "id": "f026b70c-07c6-4589-bb88-db5a0265dc38",
+      "name": "Send Resume to AI API",
+      "alwaysOutputData": false,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $node[\"Global Config\"].json.from_address }}",
+        "subject": "Interview Invitation",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\nbody{\nfont-family: Arial, Helvetica, sans-serif;\nbackground-color:#f4f6f8;\nmargin:0;\npadding:0;\n}\n.wrapper{\nwidth:100%;\nbackground:#f4f6f8;\npadding:40px 0;\n}\n.container{\nmax-width:600px;\nbackground:#ffffff;\nmargin:auto;\npadding:30px;\nborder-radius:8px;\nbox-shadow:0 2px 8px rgba(0,0,0,0.08);\n}\n.header{\nfont-size:22px;\nfont-weight:bold;\ncolor:#333333;\nmargin-bottom:20px;\n}\n.content{\nfont-size:15px;\ncolor:#555555;\nline-height:1.6;\n}\n.highlight{\nbackground:#f1f7ff;\npadding:15px;\nborder-left:4px solid #4a90e2;\nmargin:20px 0;\n}\n.footer{\nmargin-top:30px;\nfont-size:13px;\ncolor:#888888;\nborder-top:1px solid #eeeeee;\npadding-top:15px;\n}\n</style>\n</head>\n\n<body>\n\n<div class=\"wrapper\">\n<div class=\"container\">\n\n<div class=\"header\">\nInterview Invitation\n</div>\n\n<div class=\"content\">\n\n<p>Hello {{ $('Extract & Parse AI Response').item.json.candidate_name }},</p>\n\n<p>Thank you for applying for the position at our company.</p>\n\n<p>We have reviewed your resume and are impressed with your experience and skills. Based on your profile, we are pleased to inform you that you have been shortlisted for the next stage of our hiring process.</p>\n\n<div class=\"highlight\">\nYou are invited to attend an interview where we will discuss your background, technical expertise, and how you could contribute to our team.\n</div>\n\n<p><strong>Interview Details:</strong></p>\n\n<p>\nDate:  {{ $json.slot_date }}<br>\nTime: {{ $json.slot_time }}\n</p>\n\n<p>Please be available 10 minutes before the scheduled time.</p>\n\nBest regards,<br>\n{{ $node[\"Global Config\"].json.email_signature_name }}<br>\n{{ $node[\"Global Config\"].json.email_signature_company  }}\n\n\n</div>\n\n<div class=\"footer\">\nThis is an automated message sent regarding your job application. If you have any questions, please contact our HR team.\n</div>\n\n</div>\n</div>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        -1104
+      ],
+      "id": "061989ce-9454-4deb-a429-15b3b266c7bf",
+      "name": "Send Interview Invitation Email",
+      "webhookId": "c68896bd-4fcb-4bbd-8b81-e12efa0647cf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6E6HIbGCjYf1Smia",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $node[\"Global Config\"].json.from_address }}",
+        "subject": "Interview Slot Already Scheduled",
+        "message": "=<!DOCTYPE html>\n<html>\n   <head>\n      <meta charset=\"UTF-8\">\n      <title>Interview Slot Already Scheduled</title>\n   </head>\n   <body style=\"margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;\">\n      <table align=\"center\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;margin-top:30px;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.05);\">\n         <tr>\n            <td style=\"background:#1f2937;padding:20px;text-align:center;\">\n               <h2 style=\"color:#ffffff;margin:0;\">Interview Slot Already Scheduled</h2>\n            </td>\n         </tr>\n         <tr>\n            <td style=\"padding:30px;color:#333333;font-size:15px;line-height:1.6;\">\n               <p>Dear <strong>{{ $('Extract & Parse AI Response').item.json.candidate_name }}</strong>,</p>\n               <p>Thank you for your continued interest in the Software Developer position.</p>\n               <p>We would like to inform you that your interview slot has already been successfully scheduled as per the details below:</p>\n               <table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\" style=\"margin:20px 0;background:#f9fafb;border-radius:6px;\">\n                  <tr>\n                     <td><strong>Interview Date:</strong></td>\n                     <td>{{ $json.slot_date }}</td>\n                  </tr>\n                  <tr>\n                     <td><strong>Interview Time:</strong></td>\n                     <td>{{ $json.slot_time }}</td>\n                  </tr>\n               </table>\n               <p>If you have already received the confirmation email, please consider this as a reminder.</p>\n               <p>If you need to reschedule due to unavoidable circumstances, kindly reply to this email.</p>\n               <p>We look forward to speaking with you.</p>\n               <br>  \n               <p>Best regards,<br>               \n                  {{ $node[\"Global Config\"].json.email_signature_name }}<br>\n                  {{ $node[\"Global Config\"].json.email_signature_company  }}\n            </td>\n         </tr>\n         <tr>\n            <td style=\"background:#f3f4f6;padding:15px;text-align:center;font-size:12px;color:#6b7280;\"> This is an automated email. Please do not reply unless necessary. </td>\n         </tr>\n      </table>\n   </body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        -1328
+      ],
+      "id": "52523c95-8e41-4b50-8c79-e92cbee96e6a",
+      "name": "Send Slot Already Booked Notification",
+      "webhookId": "aab11e22-1137-4822-a7f7-c530733d14ed",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6E6HIbGCjYf1Smia",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const id = $node[\"Get available slot\"].json.id || $json.id;\n\nreturn [\n  {\n    json: {\n      id: id\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -1104
+      ],
+      "id": "c8919d26-cc48-43f4-a0c8-11835024a8df",
+      "name": "Slot ID Resolver"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $node[\"Global Config\"].json.from_address }}",
+        "subject": "Resume Format Issue - Please Resubmit",
+        "message": "=<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">\n     <p> Dear {{ $json.from.value[0]?.name || 'Candidate' }},</p>\n     <p> Thank you for your interest in applying with us.</p>\n     <p> We noticed that the attachment you provided is not in the required resume format.</p>\n    <p>To proceed with your application, please ensure your resume is submitted in the following format:</p>\n     <ul>\n         <li><strong>PDF (.pdf) </strong></li>\n     </ul> \n    <p> Kindly resend your application with the correct attachment format so we can review your profile.</p>\n    <p> If you have already submitted the correct file, please ignore this message.</p><br/>\n    <p> Best regards,<br/>\n<strong> {{ $node[\"Global Config\"].json.email_signature_name }}<br>\n{{ $node[\"Global Config\"].json.email_signature_company  }}</strong>\n        \n    </p>\n</div>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -4832,
+        -736
+      ],
+      "id": "9f3ca7a3-9c72-4b17-b2fe-d51f7515306b",
+      "name": "Invalid Resume Notification",
+      "webhookId": "49eb1d93-2202-4c42-914e-f6a9c643c0e1",
+      "alwaysOutputData": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6E6HIbGCjYf1Smia",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE interview_slots\nSET is_booked = 1,\n    candidate_email = '{{ $('Evaluate Candidate Match').item.json.candidate_email }}'\nWHERE id = {{ $json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1504,
+        -1104
+      ],
+      "id": "3db121bc-d56c-4577-935a-adfcfa27c4ed",
+      "name": "Update slot booked",
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM job_roles;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -4256,
+        -928
+      ],
+      "id": "e5f50689-b5de-48f7-a37c-899c89dbf222",
+      "name": "Get Active Profile",
+      "alwaysOutputData": false,
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const resume = $('Clean & Serialize Resume Text').first().json.cleanText.toLowerCase();\n\n// 🔹 Selected role\nconst selectedRole = $input.first().json.role_name;\n\n// 🔹 Role data\nconst required_skills = $input.first().json.required_skills;\nconst roleExperience = $input.first().json.min_experience;\n\n// 🔹 Extract experience\nconst expMatch = resume.match(/(\\d+)\\+?\\s*years?/);\nconst candidateExp = expMatch ? parseInt(expMatch[1]) : 0;\n\n// 🔹 Skills\nconst requiredSkills = required_skills\n  .split(',')\n  .map(s => s.trim().toLowerCase());\n\n// 🔹 Match skills\nconst matchedSkills = requiredSkills.filter(skill =>\n  resume.includes(skill)\n);\n\n// 🔹 Skill score\nconst skillScore = (matchedSkills.length / requiredSkills.length) * 100;\n\n// 🔹 Experience range (IMPORTANT 🔥)\nconst minExp = roleExperience - 1;\nconst maxExp = roleExperience + 1;\n\n// ✔ Candidate must be BETWEEN range\nconst isExpMatch = candidateExp >= minExp && candidateExp <= maxExp;\n\n// 🔹 Eligibility\nlet isEligible = false;\nlet reason = \"\";\n\nif (skillScore < 50) {\n  isEligible = false;\n  reason = `Skills do not match sufficiently for ${selectedRole}`;\n} \nelse if (candidateExp < minExp) {\n  isEligible = false;\n  reason = `We are looking for candidates with at least ${minExp} years of experience, while your profile indicates ${candidateExp} years.`;\n  \n} \nelse if (candidateExp > maxExp) {\n  isEligible = false;\n  reason = reason = `Your experience of ${candidateExp} years is higher than required for the ${roleName} role.`;;\n} \nelse {\n  isEligible = true;\n  reason = `You are shortlisted for ${selectedRole}`;\n}\n\n// 🔥 FINAL OUTPUT\nreturn [{\n  json: {\n    selected_role_name: selectedRole,\n    candidate_experience: candidateExp,\n    matchedSkills,\n    skillScore: Math.round(skillScore),\n    experience_range: `${minExp}-${maxExp}`,\n    isEligible,\n    reason\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        -992
+      ],
+      "id": "39f9bead-11a1-4d5b-8456-ba09c31f339a",
+      "name": "Resume Eligibility Filter"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "11995afb-b139-42ce-b3eb-da3f01d6100b",
+              "leftValue": "={{ $json.isEligible }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2208,
+        -992
+      ],
+      "id": "74db919f-43f2-4baf-9ac7-4d59932c4d05",
+      "name": "Eligibility Decision"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY",
+          "mode": "list",
+          "cachedResultName": "CandidateList",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 37935053,
+          "mode": "list",
+          "cachedResultName": "ProfileNotMatch",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY/edit#gid=37935053"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Get Email').item.json.from.value[0].address }}",
+            "Name": "={{ $('Get Email').item.json.from.value[0].name }}",
+            "Score": "={{$json.score}}",
+            "Date": "={{ new Date().toISOString() }}",
+            "Resume Link": "==HYPERLINK(\"{{ $items('Upload Resume to Drive')[0].json.webContentLink }}\",\"View Resume\")",
+            "Recommendation": "NO"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommendation",
+              "displayName": "Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume Link",
+              "displayName": "Resume Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -368,
+        -832
+      ],
+      "id": "27a5606b-c5db-4392-9528-1b09d150fb9f",
+      "name": "Add Rejected Candidates",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ToGxnOl370ZvnHJb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY",
+          "mode": "list",
+          "cachedResultName": "CandidateList",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "ProfileMatch",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13ltNipXbxHIrWejf2r3BAHJ6kjnyMBhvOum2ufhLIsY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{$json.candidate_name}}",
+            "Email": "={{ $('Get Email').item.json.from.value[0].address }}",
+            "Date": "={{ new Date().toISOString() }}",
+            "Score": "={{$json.score}}",
+            "Resume Link": "==HYPERLINK(\"{{ $items('Upload Resume to Drive')[0].json.webContentLink }}\",\"View Resume\")",
+            "Recommendation": "YES"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Recommendation",
+              "displayName": "Recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume Link",
+              "displayName": "Resume Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -368,
+        -1264
+      ],
+      "id": "0230cead-db02-4a50-93ab-d1669beb2ea3",
+      "name": "Add Selected Candidates",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ToGxnOl370ZvnHJb",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const resumeText = $('Clean & Serialize Resume Text').first().json.cleanText;\nconst getRoles = $input.first().json.roles;\n\nconst prompt = `You are an HR AI.\nReturn ONLY valid JSON.\nResume:\n${resumeText};\n\nAvailable Roles:\n${JSON.stringify(getRoles)};\n\nTask:\n1. Analyze the resume carefully\n2. Match the resume with the MOST relevant role\n3. Return ONLY JSON in this format:\n\n{\n  \"selected_role\": \"Backend Developer\",\n  \"confidence\": 0.85,\n  \"reason\": \"Explain why this role matches\"\n}\n\nRules:\n- Select only ONE role\n- If no strong match, return null role\n`;\n\nreturn [\n  {\n    json: {\n      prompt: prompt\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3680,
+        -928
+      ],
+      "id": "4bd18388-c44e-46b2-a058-bdfa0195b472",
+      "name": "Build AI  Prompt Resume Role Finder"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "RAW",
+        "body": "={{ JSON.stringify({ \n  \"model\": \"llama3:8b\", \n  \"prompt\": $json.prompt, \n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.7,\n    \"num_predict\": 2048\n  }\n}) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -3440,
+        -928
+      ],
+      "id": "2082de51-ada1-4eb0-93ba-a7068b53ffda",
+      "name": "Send Role Find prompt  to AI API",
+      "alwaysOutputData": false,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.response;\n// JSON extract\nconst jsonMatch = raw.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) {\n  throw new Error(\"No valid JSON found in response\");\n}\nconst parsed = JSON.parse(jsonMatch[0]);\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3200,
+        -928
+      ],
+      "id": "8e54301c-0ddb-451c-83bd-2fe1db0c6323",
+      "name": "Extract & Parse AI Response1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id,role_name, is_active,required_skills,min_experience\nFROM job_roles \nWHERE role_name = '{{ $json.selected_role }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -2992,
+        -928
+      ],
+      "id": "e9dd17ed-99a0-4c60-ae93-66f648b67890",
+      "name": "Get Role Detail",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1419f15e-5d04-4c15-ad51-18b832e4b18e",
+              "leftValue": "={{ $json.is_active }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2768,
+        -928
+      ],
+      "id": "b94168b0-f84f-46ac-b17f-8813e93702da",
+      "name": "Check role is active"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"reason\": 'We regret to inform you that your profile was not shortlisted for the {{ $json.role_name }} role as it does not sufficiently match the required technical skills.',\n  \n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2496,
+        -800
+      ],
+      "id": "acbf9dfd-46ad-41d2-84d7-951c62654b7b",
+      "name": "Get Profile Not Match Reason"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $node[\"Global Config\"].json.from_address }}",
+        "subject": "Application Update",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\nbody{\nfont-family: Arial, Helvetica, sans-serif;\nbackground-color:#f4f6f8;\nmargin:0;\npadding:0;\n}\n.wrapper{\nwidth:100%;\nbackground:#f4f6f8;\npadding:40px 0;\n}\n.container{\nmax-width:600px;\nbackground:#ffffff;\nmargin:auto;\npadding:30px;\nborder-radius:8px;\nbox-shadow:0 2px 8px rgba(0,0,0,0.08);\n}\n.header{\nfont-size:22px;\nfont-weight:bold;\ncolor:#333333;\nmargin-bottom:20px;\n}\n.content{\nfont-size:15px;\ncolor:#555555;\nline-height:1.6;\n}\n.highlight{\nbackground:#f1f7ff;\npadding:15px;\nborder-left:4px solid #4a90e2;\nmargin:20px 0;\n}\n.footer{\nmargin-top:30px;\nfont-size:13px;\ncolor:#888888;\nborder-top:1px solid #eeeeee;\npadding-top:15px;\n}\n</style>\n</head>\n\n<body>\n\n<div class=\"wrapper\">\n<div class=\"container\">\n\n<div class=\"header\">\nApplication Update\n</div>\n\n<div class=\"content\">\n\n<p>Hello {{ $('Get Email').item.json.from.value[0].name }},</p>\n\n<p> {{$json.reason}} </p>\n\n<p>We appreciate your interest in our company and encourage you to apply for future opportunities.</p>\n\nBest regards,<br>\n{{ $node[\"Global Config\"].json.email_signature_name }}<br>\n{{ $node[\"Global Config\"].json.email_signature_company  }}\n\n\n</div>\n\n<div class=\"footer\">\nThis is an automated message sent regarding your job application. If you have any questions, please contact our HR team.\n</div>\n\n</div>\n</div>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -1792,
+        -752
+      ],
+      "id": "f1abd469-4ff2-410f-bb52-69a189e21544",
+      "name": "Send Rejection Mail",
+      "webhookId": "7bd177bb-6aa8-4834-92e5-2e2da7e372c5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6E6HIbGCjYf1Smia",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"Your profile is relevant for the {{role}} position; however, it does not fully meet the required skill expectations at this stage.',\n  \n}\n ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        -640
+      ],
+      "id": "36503092-c02d-4d7e-a0e6-7d20ebe3ead6",
+      "name": "Get Reason Requirements Not Met "
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst roles = [];\nconst skillsSet = new Set(); // for unique skills\n\nfor (const item of items) {\n  const data = item.json;\n\n  // push role\n  if (data.role_name) {\n    roles.push(data.role_name);\n  }\n\n  // process skills\n  if (data.profile_keywords) {\n    const skills = data.profile_keywords\n      .split(',')\n      .map(k => k.trim().toLowerCase());\n\n    skills.forEach(skill => skillsSet.add(skill));\n  }\n}\n\n// convert Set to array\nconst uniqueSkills = Array.from(skillsSet);\n\nreturn [\n  {\n    json: {\n      roles: roles,\n      skills: uniqueSkills\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3984,
+        -928
+      ],
+      "id": "e5e9d402-396a-4864-8638-4a35e4677791",
+      "name": "Create Roles Array"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $node[\"Global Config\"].json.from_address }}",
+        "subject": "Application Update",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\nbody{\nfont-family: Arial, Helvetica, sans-serif;\nbackground-color:#f4f6f8;\nmargin:0;\npadding:0;\n}\n.wrapper{\nwidth:100%;\nbackground:#f4f6f8;\npadding:40px 0;\n}\n.container{\nmax-width:600px;\nbackground:#ffffff;\nmargin:auto;\npadding:30px;\nborder-radius:8px;\nbox-shadow:0 2px 8px rgba(0,0,0,0.08);\n}\n.header{\nfont-size:22px;\nfont-weight:bold;\ncolor:#333333;\nmargin-bottom:20px;\n}\n.content{\nfont-size:15px;\ncolor:#555555;\nline-height:1.6;\n}\n.highlight{\nbackground:#f1f7ff;\npadding:15px;\nborder-left:4px solid #4a90e2;\nmargin:20px 0;\n}\n.footer{\nmargin-top:30px;\nfont-size:13px;\ncolor:#888888;\nborder-top:1px solid #eeeeee;\npadding-top:15px;\n}\n</style>\n</head>\n\n<body>\n\n<div class=\"wrapper\">\n<div class=\"container\">\n\n<div class=\"header\">\nApplication Update\n</div>\n\n<div class=\"content\">\n\n<p>Hello {{ $('Extract & Parse AI Response').item.json.candidate_name }},</p>\n\n<p> You have previously attended an interview with us, so we are unable to move forward with your application at this time. </p>\n\nBest regards,<br>\n{{ $node[\"Global Config\"].json.email_signature_name }}<br>\n{{ $node[\"Global Config\"].json.email_signature_company  }}\n\n\n</div>\n\n<div class=\"footer\">\nThis is an automated message sent regarding your job application. If you have any questions, please contact our HR team.\n</div>\n\n</div>\n</div>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -816,
+        -960
+      ],
+      "id": "2646b79a-9734-42ab-9097-38cad282a673",
+      "name": "interview past already set send email",
+      "webhookId": "7bd177bb-6aa8-4834-92e5-2e2da7e372c5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6E6HIbGCjYf1Smia",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM interview_slots\nWHERE slot_date < CURDATE()\nAND is_booked = 1\nAND candidate_email = '{{ $json.candidate_email }}'  ORDER BY id DESC LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -1296,
+        -1040
+      ],
+      "id": "ce42d041-e337-4b56-8fe8-41a83fd5006b",
+      "name": "Check Past Interview Record",
+      "credentials": {
+        "mySql": {
+          "id": "neHSjY3J03LUoRWV",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "54c286ae-eaf0-4b20-be01-761c66489b16",
+              "leftValue": false,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1088,
+        -1040
+      ],
+      "id": "ed6a3cb8-5860-4c22-9b62-b03d1bc75f83",
+      "name": "Already Interviewed?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "59e3abf6-26b6-4f80-9836-f84620629c4b",
+              "leftValue": "={{ $binary?.attachment_0?.mimeType === \"application/pdf\" }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -5296,
+        -592
+      ],
+      "id": "955e92f7-406c-4df4-b56f-10ea12edb01d",
+      "name": "Validate Resume Attachment1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Upload Resume to Drive": {
+      "main": [
+        [
+          {
+            "node": "Generate Resume Share Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Resume Share Link": {
+      "main": [
+        []
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Clean & Serialize Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Candidate Match": {
+      "main": [
+        [
+          {
+            "node": "Add Selected Candidates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get available slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Rejected Candidates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Reason Requirements Not Met ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Resume Attachment": {
+      "main": [
+        [
+          {
+            "node": "Upload Resume to Drive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Resume Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get available slot": {
+      "main": [
+        [
+          {
+            "node": "check Slot Avialable or not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check Slot Avialable or not": {
+      "main": [
+        [
+          {
+            "node": "Get Booked Slot ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Next Working Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Next Working Day": {
+      "main": [
+        [
+          {
+            "node": "Insert Slots For That Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Slots For That Day": {
+      "main": [
+        [
+          {
+            "node": "Get available slot1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get available slot1": {
+      "main": [
+        [
+          {
+            "node": "Slot ID Resolver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get updated slot data": {
+      "main": [
+        [
+          {
+            "node": "Send Interview Invitation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booked Slot ": {
+      "main": [
+        [
+          {
+            "node": "Check Slot Already Booked or Not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slot Already Booked or Not": {
+      "main": [
+        [
+          {
+            "node": "Get Booked Slot 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slot ID Resolver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booked Slot 1": {
+      "main": [
+        [
+          {
+            "node": "Send Slot Already Booked Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Config": {
+      "main": [
+        [
+          {
+            "node": "Validate Resume Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email": {
+      "main": [
+        [
+          {
+            "node": "Global Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Evaluation Prompt": {
+      "main": [
+        [
+          {
+            "node": "Send Resume to AI API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean & Serialize Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Get Active Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Check Past Interview Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Resume to AI API": {
+      "main": [
+        [
+          {
+            "node": "Extract & Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot ID Resolver": {
+      "main": [
+        [
+          {
+            "node": "Update slot booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update slot booked": {
+      "main": [
+        [
+          {
+            "node": "Get updated slot data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Profile": {
+      "main": [
+        [
+          {
+            "node": "Create Roles Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Eligibility Filter": {
+      "main": [
+        [
+          {
+            "node": "Eligibility Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eligibility Decision": {
+      "main": [
+        [
+          {
+            "node": "Build AI Evaluation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection Mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI  Prompt Resume Role Finder": {
+      "main": [
+        [
+          {
+            "node": "Send Role Find prompt  to AI API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Role Find prompt  to AI API": {
+      "main": [
+        [
+          {
+            "node": "Extract & Parse AI Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Parse AI Response1": {
+      "main": [
+        [
+          {
+            "node": "Get Role Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Role Detail": {
+      "main": [
+        [
+          {
+            "node": "Check role is active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check role is active": {
+      "main": [
+        [
+          {
+            "node": "Resume Eligibility Filter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Profile Not Match Reason",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile Not Match Reason": {
+      "main": [
+        [
+          {
+            "node": "Send Rejection Mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Reason Requirements Not Met ": {
+      "main": [
+        [
+          {
+            "node": "Send Rejection Mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Roles Array": {
+      "main": [
+        [
+          {
+            "node": "Build AI  Prompt Resume Role Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Past Interview Record": {
+      "main": [
+        [
+          {
+            "node": "Already Interviewed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already Interviewed?": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Candidate Match",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "interview past already set send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "482bea8c-9a98-4c73-a477-35ed5b1f163e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7a1091cbaa960daebec0ec3179024303bbf18d328e6b52ef8ce1e797ab0a599c"
+  },
+  "id": "lom6Pd03QbWGr8ag",
+  "tags": []
+}
